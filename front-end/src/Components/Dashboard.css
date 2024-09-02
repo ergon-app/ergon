@@ -50,6 +50,9 @@
 
 .create-file-btn {
   padding: 10px 15px;
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
   font-size: 1rem;
   color: #fff;
   background-color: #434343;
@@ -57,7 +60,7 @@
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .create-file-btn:hover {
@@ -71,15 +74,16 @@
 }
 
 .file-item {
-  background-color: #f9f9f9;
-  padding: 10px;
+  background-color: #fff;
+  padding: 15px;
   border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease;
   cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 .file-item:hover {
-  background-color: #eaeaea;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .file-item.expanded {
@@ -87,9 +91,11 @@
 }
 
 .file-name {
-  display: flex;
+  font-size: 1rem;
+  color: #333;
+  display: inline-flex; /* Make sure this is set */
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* Ensures space between items */
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
@@ -97,8 +103,8 @@
 }
 
 .file-options {
-  flex-shrink: 0;
-  margin-left: 5px;
+  flex-shrink: 0; /* Prevent shrinking */
+  margin-left: auto; /* Align to the right */
   cursor: pointer;
 }
 
@@ -111,6 +117,7 @@
   padding: 5px 0;
   min-width: 120px;
   font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .file-menu-item {

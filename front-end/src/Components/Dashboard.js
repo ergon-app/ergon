@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MoreVertical, X, Home, Settings, LogOut } from 'lucide-react';
+import { MoreVertical, X, Home, Settings, LogOut, FolderPlus } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import fetchUserInfo from './api';
 import './Dashboard.css';
@@ -178,7 +178,7 @@ const Dashboard = () => {
           event.stopPropagation();
           handleFileRename(fileId);
         }}>
-          Rename
+          rename
           <div className="file-menu-close" onClick={(event) => {
             event.stopPropagation();
             onClose();
@@ -191,7 +191,7 @@ const Dashboard = () => {
           event.stopPropagation();
           handleFileDelete(fileId);
         }}>
-          Delete
+          delete
         </div>
       </div>,
       document.body
@@ -218,12 +218,15 @@ const Dashboard = () => {
         <h1 className="greeting">{greeting}, {username || 'user'}</h1>
         <div className="files-section">
           <h2>your spaces</h2>
-          <button className="create-file-btn" onClick={handleCreateFile}>+ new file</button>
+          <button className="create-file-btn" onClick={handleCreateFile}>
+            <FolderPlus size={20}/>
+            <span>new space</span>
+          </button>
           <div className="file-list">
             {files.map(file => (
               <div key={file.id} className={`file-item ${file.id === expandedFileId ? 'expanded' : ''}`} onClick={() => handleFileClick(file.id)}>
                 <div className="file-name">
-                  {truncateFileName(file.name)}
+                  <span className="file-name-text">{file.name}</span>
                   <div 
                     className="file-options"
                     ref={el => fileOptionsRef.current[file.id] = el}
@@ -234,10 +237,10 @@ const Dashboard = () => {
                   >
                     <MoreVertical size={16} />
                   </div>
-                  {fileMenuOpen === file.id && (
-                    <FileMenu fileId={file.id} onClose={() => setFileMenuOpen(null)} />
-                  )}
                 </div>
+                {fileMenuOpen === file.id && (
+                  <FileMenu fileId={file.id} onClose={() => setFileMenuOpen(null)} />
+                )}
               </div>
             ))}
           </div>

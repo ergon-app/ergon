@@ -28,7 +28,7 @@ const SpacePage = () => {
         id: id++, 
         name: file.key.split('/').filter(Boolean).pop(),
       }));
-      
+
       setFiles(cleanedFiles);
     } catch (error) {
       console.error("Error fetching files:", error);
@@ -118,11 +118,11 @@ const SpacePage = () => {
         left: `${optionsRect ? optionsRect.left + window.scrollX : 0}px`,
       }}>
         <div className="file-menu-item" onClick={() => handleFileRename(fileId, fileName)}>
-          Rename
+          rename
         </div>
         <div className="file-menu-divider"></div>
         <div className="file-menu-item" onClick={() => handleFileDelete(fileId, fileName)}>
-          Delete
+          delete
         </div>
         <div className="file-menu-close" onClick={onClose}>
           <X size={16} />
@@ -156,35 +156,36 @@ const SpacePage = () => {
         <h1 className="space-title">{spaceName}</h1>
         <div className="file-list">
           {files.length === 0 ? (
-            <p>No files found. Try uploading a file.</p>
+            <p>no files found. try uploading a file.</p>
           ) : (
             files.map(file => (
-                <div key={file.id} className="file-item">
-                <span className="file-name">{file.name}</span>
-                <div 
-                  className="file-options"
-                  ref={el => fileOptionsRef.current[file.id] = el}
-                  onClick={() => setFileMenuOpen(fileMenuOpen === file.id ? null : file.id)}
-                >
-                  <MoreVertical size={16} />
+              <div key={file.id} className="file-item">
+                <div className="file-name">
+                  <span className="file-name-text">{file.name}</span>
+                  <div 
+                    className="file-options"
+                    ref={el => fileOptionsRef.current[file.id] = el}
+                    onClick={() => setFileMenuOpen(fileMenuOpen === file.id ? null : file.id)}
+                  >
+                    <MoreVertical size={16} />
+                  </div>
                 </div>
                 {fileMenuOpen === file.id && (
                   <FileMenu 
-                    key={file.id + "-menu"}  // Add a unique key prop for the FileMenu component
+                    key={file.id + "-menu"}
                     fileId={file.id} 
                     fileName={file.name}
                     onClose={() => setFileMenuOpen(null)} 
                   />
                 )}
               </div>
-            
             ))
           )}
         </div>
         <div className="upload-section">
           <label htmlFor="file-upload" className="upload-button">
             <Upload size={16} />
-            Upload File
+            upload file
           </label>
           <input
             id="file-upload"
