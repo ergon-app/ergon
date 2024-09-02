@@ -4,7 +4,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand } = require("@aws-sdk/client-s3");
 require('dotenv').config();
 
 const app = express();
@@ -27,6 +27,10 @@ const s3Client = new S3Client({
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
   });
+
+function sanitizeFileName(fileName) {
+    return fileName.replace(/\//g, '_');
+}
 
 app.post('/signup', async (req, res) => {
     const { username, email, password } = req.body;
@@ -123,12 +127,20 @@ app.get("/user/directory", authenticateToken, async (req, res) => {
             return res.json([]);
         }
 
-        const files = data.Contents.map(file => ({
+        const cleanedData = data.Contents.filter(file => {
+            const cleanedKey = file.Key.replace(/\/+/g, '/');  // Replace multiple slashes with a single slash
+            const splitKey = file.Key.split('/')
+            return cleanedKey !== 'users/' + username + '/' && splitKey[splitKey.length - 1] === '';
+        });
+          
+
+        const files = cleanedData.map(file => ({
             key: file.Key,
             size: file.Size,
             lastModified: file.LastModified,
             url: `https://${params.Bucket}.s3.amazonaws.com/${file.Key}`
         }));
+        console.log(files);
         res.status(200).json(files);
     } catch (err) {
         console.error("Error", err);
@@ -139,7 +151,7 @@ app.get("/user/directory", authenticateToken, async (req, res) => {
 app.post("/user/directory", authenticateToken, async (req, res) => {
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
-    const directoryName = req.body.name;
+    const directoryName = sanitizeFileName(req.body.name);
     
     try {
         const params = {
@@ -192,10 +204,10 @@ app.delete("/user/directory", authenticateToken, async (req, res) => {
 });
 
 
-app.get("/user/:directory/files", authenticateToken, async (req, res) => {
+app.get("/user/:spaceName/files", authenticateToken, async (req, res) => {
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
-    const directoryName = req.params.directory;
+    const directoryName = req.params.spaceName;
     
     const params = {
         Bucket: 'ergon-bucket',
@@ -211,7 +223,9 @@ app.get("/user/:directory/files", authenticateToken, async (req, res) => {
             return res.json([]);
         }
 
-        const files = data.Contents.map(file => ({
+        const cleanedData = data.Contents.filter(file => file.Key !== 'users/' + username + '/' + directoryName + '/')
+
+        const files = cleanedData.map(file => ({
             key: file.Key,
             size: file.Size,
             lastModified: file.LastModified,
@@ -245,16 +259,17 @@ app.delete("/user/:directory/files", authenticateToken, async (req, res) => {
 });
 
 
-app.post("/user/:directory/rename", authenticateToken, async (req, res) => {
+app.post("/user/directory/rename", authenticateToken, async (req, res) => {
+    console.log('Rename route accessed:', req.body); // Log request body
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
-    const oldDirectoryName = req.params.directory;
-    const newDirectoryName = req.body.newName;
+    const oldDirectoryName = req.body.oldName;
+    const newDirectoryName = sanitizeFileName(req.body.newName);
 
     try {
         const listParams = {
             Bucket: 'ergon-bucket',
-            Prefix: `users/${username}/${oldDirectoryName}/`
+            Prefix: `users/${username}/${oldDirectoryName}`
         };
         const listCommand = new ListObjectsV2Command(listParams);
         const listedObjects = await s3Client.send(listCommand);
@@ -297,22 +312,22 @@ app.post("/user/:directory/rename", authenticateToken, async (req, res) => {
     }
 });
 
-app.post("/user/:directory/file/upload", authenticateToken, upload.single('file'), async (req, res) => {
+app.post("/user/:spaceName/file/upload", authenticateToken, upload.single('file'), async (req, res) => {
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
-    const directoryName = req.params.directory;
-    const file = req.file; 
+    const directoryName = req.params.spaceName;
+    const file = req.file;
 
     try {
         const params = {
             Bucket: 'ergon-bucket',
-            Key: `users/${username}/${directoryName}/${file.originalname}`,
-            Body: file.buffer, 
-            ContentType: file.mimetype 
+            Key: `users/${username}/${directoryName}/${sanitizeFileName(file.originalname)}`,
+            Body: file.buffer,
+            ContentType: file.mimetype
         };
 
         const command = new PutObjectCommand(params);
-        const data = await s3Client.send(command);
+        await s3Client.send(command);
         res.status(200).send('File uploaded successfully');
     } catch (err) {
         console.error("Error", err);
@@ -347,7 +362,7 @@ app.post("/user/:directory/file/rename", authenticateToken, async (req, res) => 
     const username = userResult.rows[0].username;
     const directoryName = req.params.directory;
     const oldFileName = req.body.oldFileName;
-    const newFileName = req.body.newFileName;
+    const newFileName = sanitizeFileName(req.body.newFileName);
 
     try {
         const oldKey = `users/${username}/${directoryName}/${oldFileName}`;

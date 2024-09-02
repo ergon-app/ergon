@@ -1,84 +1,137 @@
 .dashboard {
-    display: flex;
-    height: 100vh;
-    background-color: #f4f4f4;
-  }
-  
-  .sidebar {
-    width: 250px;
-    background-color: #434343;
-    color: #fff;
-    padding: 20px;
-  }
-  
-  .sidebar-item {
-    padding: 10px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-  }
-  
-  .sidebar-item:hover, .sidebar-item.active {
-    background-color: #333;
-  }
-  
-  .main-content {
-    flex-grow: 1;
-    padding: 40px;
-    overflow-y: auto;
-  }
-  
-  .greeting {
-    font-size: 2.5rem;
-    margin-bottom: 30px;
-    color: #333;
-  }
-  
-  .files-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .files-section h2 {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
-  .create-file-btn {
-    padding: 10px 15px;
-    font-size: 1rem;
-    color: #fff;
-    background-color: #434343;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-bottom: 20px;
-  }
-  
-  .create-file-btn:hover {
-    background-color: #333;
-  }
-  
-  .file-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-  }
-  
-  .file-item {
-    background-color: #f9f9f9;
-    overflow: hidden;
-    padding: 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .file-item:hover {
-    background-color: #eaeaea;
-  }
+  display: flex;
+  height: 100vh;
+  background-color: #f4f4f4;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #434343;
+  color: #fff;
+  padding: 20px;
+}
+
+.sidebar-item {
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar-item:hover, .sidebar-item.active {
+  background-color: #333;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.greeting {
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+.files-section {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.files-section h2 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.create-file-btn {
+  padding: 10px 15px;
+  font-size: 1rem;
+  color: #fff;
+  background-color: #434343;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.create-file-btn:hover {
+  background-color: #333;
+}
+
+.file-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.file-item {
+  background-color: #f9f9f9;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.file-item:hover {
+  background-color: #eaeaea;
+}
+
+.file-item.expanded {
+  background-color: #eaeaea;
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-options {
+  flex-shrink: 0;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+.file-menu {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  padding: 5px 0;
+  min-width: 120px;
+  font-size: 0.9rem;
+}
+
+.file-menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.file-menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+.file-menu-divider {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 5px 0;
+}
+
+.file-menu-close {
+  cursor: pointer;
+}

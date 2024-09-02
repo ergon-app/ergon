@@ -4,6 +4,7 @@ import LandingPage from './Components/LandingPage.js';
 import LoginPage from './Components/LoginPage.js'
 import Signup from './Components/SignupPage.js'
 import Dashboard from './Components/Dashboard.js';
+import SpacePage from './Components/SpacePage.js';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/space/:spaceName" element={<SpacePage />} />
       </Routes>
     </BrowserRouter>
   );

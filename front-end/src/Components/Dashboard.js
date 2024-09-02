@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; // Ensure axios is imported
-import './Dashboard.css';
+import axios from 'axios';
+import { MoreVertical, X, Home, Settings, LogOut } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import fetchUserInfo from './api';
+import './Dashboard.css';
 
 function logout() {
   localStorage.removeItem('token'); 
 }
 
-function Dashboard() {
+const Dashboard = () => {
   const [greeting, setGreeting] = useState('');
   const [files, setFiles] = useState([]);
   const [username, setUsername] = useState('');
+  const [expandedFileId, setExpandedFileId] = useState(null);
+  const [fileMenuOpen, setFileMenuOpen] = useState(null);
+  const fileOptionsRef = useRef({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,12 +26,17 @@ function Dashboard() {
     else setGreeting('good evening');
 
     async function getUserInfo() {
-      const userInfo = await fetchUserInfo();
-      if (userInfo) {
-        setUsername(userInfo);
-      } else {
-        console.error('Failed to fetch user info');
-        navigate('/login'); 
+      try {
+        const userInfo = await fetchUserInfo();
+        if (userInfo) {
+          setUsername(userInfo);
+        } else {
+          console.error('Failed to fetch user info');
+          navigate('/login'); 
+        }
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+        navigate('/login');
       }
     }
     getUserInfo();
@@ -36,13 +46,21 @@ function Dashboard() {
 
   const parseFilesToArray = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/user/directory');
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:3000/user/directory',
+        { headers: {
+          Authorization: `Bearer ${token}`
+         }
+        }
+      );
       const files = response.data;
 
       let id = 1;
       const spaces = files.map(file => ({
-        id: id++, // Increment id for each file
-        name: file.key.split('/').filter(Boolean).pop() // Extract the directory name
+        id: id++, 
+        name: file.key.split('/').filter(Boolean).pop(),
+        isExpanded: false
       }));
 
       setFiles(spaces);
@@ -70,7 +88,7 @@ function Dashboard() {
       if (response.status === 200) {
         setFiles(prevFiles => [
           ...prevFiles,
-          { id: prevFiles.length + 1, name: fileName }
+          { id: prevFiles.length + 1, name: fileName, isExpanded: false }
         ]);
         console.log('File created successfully');
       }
@@ -80,7 +98,57 @@ function Dashboard() {
   };
 
   const handleFileClick = (fileId) => {
-    console.log(`file with id: ${fileId}`);
+    const file = files.find(f => f.id === fileId);
+    navigate(`/space/${encodeURIComponent(file.name)}`);
+  };
+
+  const handleFileRename = async (fileId) => {
+    try {
+      const newName = prompt("Enter the new name for the space:");
+      if (!newName) return;
+  
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://localhost:3000/user/directory/rename`,
+        {
+          oldName: files.find(file => file.id === fileId).name,
+          newName: newName
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+  
+      setFiles(prevFiles => prevFiles.map(file => file.id === fileId ? { ...file, name: newName } : file));
+      setFileMenuOpen(null);
+    } catch (error) {
+      console.error("Error renaming file:", error);
+    }
+  };
+  
+
+  const handleFileDelete = async (fileId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `http://localhost:3000/user/directory`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          data: {
+            name: files.find(file => file.id === fileId).name
+          }
+        }
+      );
+
+      setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+      setFileMenuOpen(null);
+    } catch (error) {
+      console.error("Error deleting file:", error);
+    }
   };
 
   const handleSettingsClick = () => {
@@ -92,12 +160,59 @@ function Dashboard() {
     navigate('/login');
   };
 
+  const truncateFileName = (name, maxLength = 15) => {
+    if (name.length <= maxLength) return name;
+    return `${name.substring(0, maxLength)}...`;
+  };
+
+  const FileMenu = ({ fileId, onClose }) => {
+    const optionsRect = fileOptionsRef.current[fileId]?.getBoundingClientRect();
+    
+    return createPortal(
+      <div className="file-menu" style={{
+        position: 'absolute',
+        top: `${optionsRect ? optionsRect.bottom + window.scrollY : 0}px`,
+        left: `${optionsRect ? optionsRect.left + window.scrollX : 0}px`,
+      }}>
+        <div className="file-menu-item" onClick={(event) => {
+          event.stopPropagation();
+          handleFileRename(fileId);
+        }}>
+          Rename
+          <div className="file-menu-close" onClick={(event) => {
+            event.stopPropagation();
+            onClose();
+          }}>
+            <X size={16} />
+          </div>
+        </div>
+        <div className="file-menu-divider"></div>
+        <div className="file-menu-item" onClick={(event) => {
+          event.stopPropagation();
+          handleFileDelete(fileId);
+        }}>
+          Delete
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <div className="dashboard">
       <div className="sidebar">
-        <div className="sidebar-item active">home</div>
-        <div className="sidebar-item" onClick={handleSettingsClick}>settings</div>
-        <div className="sidebar-item" onClick={handleLogout}>logout</div>
+      <div className="sidebar-item" onClick={() => navigate('/dashboard')}>
+          <Home size={20} />
+          <span>home</span>
+        </div>
+        <div className="sidebar-item" onClick={() => navigate('/settings')}>
+          <Settings size={20} />
+          <span>settings</span>
+        </div>
+        <div className="sidebar-item" onClick={handleLogout}>
+          <LogOut size={20} />
+          <span>logout</span>
+        </div>
       </div>
       <div className="main-content">
         <h1 className="greeting">{greeting}, {username || 'user'}</h1>
@@ -106,8 +221,23 @@ function Dashboard() {
           <button className="create-file-btn" onClick={handleCreateFile}>+ new file</button>
           <div className="file-list">
             {files.map(file => (
-              <div key={file.id} className="file-item" onClick={() => handleFileClick(file.id)}>
-                {file.name}
+              <div key={file.id} className={`file-item ${file.id === expandedFileId ? 'expanded' : ''}`} onClick={() => handleFileClick(file.id)}>
+                <div className="file-name">
+                  {truncateFileName(file.name)}
+                  <div 
+                    className="file-options"
+                    ref={el => fileOptionsRef.current[file.id] = el}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setFileMenuOpen(fileMenuOpen === file.id ? null : file.id);
+                    }}
+                  >
+                    <MoreVertical size={16} />
+                  </div>
+                  {fileMenuOpen === file.id && (
+                    <FileMenu fileId={file.id} onClose={() => setFileMenuOpen(null)} />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -115,6 +245,6 @@ function Dashboard() {
       </div>
     </div>
   );
-}
+};
 
 export default Dashboard;
