@@ -4,13 +4,24 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { ComputerVisionClient } = require("@azure/cognitiveservices-computervision");
+const { ApiKeyCredentials } = require("@azure/ms-rest-js");
+const { Readable } = require('stream');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 const upload = multer();
+
+const computerVisionKey = process.env.AZURE_COMPUTER_VISION_KEY;
+const computerVisionEndpoint = process.env.AZURE_COMPUTER_VISION_ENDPOINT;
+
+const computerVisionClient = new ComputerVisionClient(
+  new ApiKeyCredentials({ inHeader: { 'Ocp-Apim-Subscription-Key': computerVisionKey } }),
+  computerVisionEndpoint
+);
 
 const pool = new Pool({
     user: process.env.PG_USER,
@@ -372,6 +383,86 @@ app.post("/user/:spaceName/file/rename", authenticateToken, async (req, res) => 
     } catch (err) {
         console.error("Error", err);
         res.status(500).send('Error renaming file in S3');
+    }
+});
+
+app.post("/user/:spaceName/transcribe", authenticateToken, async (req, res) => {
+    try {
+      const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+      const username = userResult.rows[0].username;
+      const directoryName = req.params.spaceName;
+      const { files } = req.body;
+  
+      let transcribedText = '';
+  
+      for (const fileName of files) {
+        const s3Key = `users/${username}/${directoryName}/${fileName}`;
+        
+        const getObjectParams = {
+          Bucket: 'ergon-bucket',
+          Key: s3Key
+        };
+  
+        try {
+          const { Body } = await s3Client.send(new GetObjectCommand(getObjectParams));
+          const chunks = [];
+          for await (const chunk of Body) {
+            chunks.push(chunk);
+          }
+          const fileBuffer = Buffer.concat(chunks);
+  
+          const result = await computerVisionClient.readInStream(fileBuffer);
+
+          const operationId = result.operationLocation.split('/').pop();
+          
+          let operation = await computerVisionClient.getReadResult(operationId);
+          
+          while (operation.status !== "succeeded") {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              operation = await computerVisionClient.getReadResult(operationId);
+          }
+          
+          for (const readResult of operation.analyzeResult.readResults) {
+              for (const line of readResult.lines) {
+                  transcribedText += line.text + '\n';
+              }
+          }
+        } catch (error) {
+          console.error(`Error processing file ${fileName}:`, error);
+          transcribedText += `Error processing file ${fileName}\n`;
+        }
+      }
+  
+      res.json({ text: transcribedText });
+    } catch (error) {
+      console.error('Error in transcription:', error);
+      res.status(500).json({ error: 'An error occurred during transcription' });
+    }
+  });
+
+app.post('/user/:spaceName/submit-transcription', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName } = req.params;
+        const { text } = req.body;
+
+        const fileName = `${spaceName}-transcription.txt`;
+        const s3Key = `users/${username}/${spaceName}/${fileName}`;
+
+        const putObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+            Body: text,
+            ContentType: 'text/plain',
+        };
+
+        await s3Client.send(new PutObjectCommand(putObjectParams));
+
+        res.status(200).json({ message: 'Transcription submitted successfully', fileName: fileName });
+    } catch (error) {
+        console.error('Error submitting transcription:', error);
+        res.status(500).json({ error: 'An error occurred during transcription submission' });
     }
 });
 

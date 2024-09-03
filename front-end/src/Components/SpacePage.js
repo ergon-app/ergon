@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MoreVertical, X, Upload, Home, Settings, LogOut, File } from 'lucide-react';
+import { MoreVertical, X, Upload, Home, Settings, LogOut, File, Check } from 'lucide-react';
 import './SpacePage.css';
+
+const ALLOWED_EXTENSIONS = ['.txt', '.doc', '.docx', '.pdf'];
+const MAX_FILES = 5;
 
 const SpacePage = () => {
   const { spaceName } = useParams();
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [fileMenuOpen, setFileMenuOpen] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [transcribedText, setTranscribedText] = useState('');
+  const [transcribedFileName, setTranscribedFileName] = useState(null);
+  const [loading, setLoading] = useState(false);
   const fileOptionsRef = useRef({});
 
   const fetchFiles = useCallback(async () => {
@@ -30,12 +37,9 @@ const SpacePage = () => {
       }));
 
       setFiles(cleanedFiles);
+      setTranscribedFileName(`${spaceName}-transcription.txt`);
     } catch (error) {
       console.error("Error fetching files:", error);
-      if (error.response) {
-        console.log("Response data:", error.response.data);
-        console.log("Response status:", error.response.status);
-      }
     }
   }, [spaceName]);
 
@@ -44,59 +48,73 @@ const SpacePage = () => {
   }, [fetchFiles]);
 
   const handleFileRename = async (fileId, currentName) => {
-    try {
-        const newName = prompt("Enter the new name for the file:", currentName);
-        if (!newName || newName === currentName) return;
-
-        const token = localStorage.getItem('token');
-
-        await axios.post(
-            `http://localhost:3000/user/${spaceName}/file/rename`,
-            { 
-                oldFileName: currentName, 
-                newFileName: newName 
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const fileExtension = currentName.substring(currentName.lastIndexOf('.'));
-        const updatedName = newName + fileExtension;
-
-        setFiles(prevFiles => prevFiles.map(file => 
-            file.id === fileId ? { ...file, name: updatedName } : file
-        ));
-        setFileMenuOpen(null);
-    } catch (error) {
-        console.error("Error renaming file:", error);
+    if(currentName = transcribedFileName) {
+        alert("Cannot rename transcription files!");
+        return
     }
-};
+    try {
+      const newName = prompt("Enter the new name for the file:", currentName);
+      if (!newName || newName === currentName) return;
 
+      const token = localStorage.getItem('token');
+
+      await axios.post(
+        `http://localhost:3000/user/${spaceName}/file/rename`,
+        { 
+          oldFileName: currentName, 
+          newFileName: newName 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      const fileExtension = currentName.substring(currentName.lastIndexOf('.'));
+      const updatedName = newName + fileExtension;
+
+      setFiles(prevFiles => prevFiles.map(file => 
+        file.id === fileId ? { ...file, name: updatedName } : file
+      ));
+      setFileMenuOpen(null);
+    } catch (error) {
+      console.error("Error renaming file:", error);
+    }
+  };
 
   const handleFileDelete = async (fileId, fileName) => {
     try {
-        const token = localStorage.getItem('token');
-        
-        await axios.delete(
-            `http://localhost:3000/user/${spaceName}/file`, 
-            {
-                headers: { Authorization: `Bearer ${token}` },
-                data: { 
-                    files: [{ name: fileName }] 
-                }
-            }
-        );
+      const token = localStorage.getItem('token');
+      
+      await axios.delete(
+        `http://localhost:3000/user/${spaceName}/file`, 
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { 
+            files: [{ name: fileName }] 
+          }
+        }
+      );
 
-        setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
-        setFileMenuOpen(null);
+      setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+      setSelectedFiles(prevSelected => prevSelected.filter(id => id !== fileId));
+      setFileMenuOpen(null);
     } catch (error) {
-        console.error("Error deleting file:", error);
+      console.error("Error deleting file:", error);
     }
-};
-
+  };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+      alert(`Only text documents are allowed (${ALLOWED_EXTENSIONS.join(', ')})`);
+      return;
+    }
+
+    if (files.length >= MAX_FILES) {
+      alert(`You can only upload a maximum of ${MAX_FILES} files.`);
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -117,6 +135,54 @@ const SpacePage = () => {
       fetchFiles();
     } catch (error) {
       console.error("Error uploading file:", error);
+    }
+  };
+
+  const handleFileSelect = (fileId) => {
+    setSelectedFiles(prev => 
+      prev.includes(fileId) 
+        ? prev.filter(id => id !== fileId) 
+        : [...prev, fileId]
+    );
+  };
+
+  const handleTranscribe = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const selectedFileNames = selectedFiles.map(id => 
+        files.find(file => file.id === id).name
+      );
+
+      const response = await axios.post(
+        `http://localhost:3000/user/${spaceName}/transcribe`,
+        { files: selectedFileNames },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setTranscribedText(response.data.text);
+    } catch (error) {
+      console.error("Error transcribing files:", error);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const handleSubmitToCloud = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `http://localhost:3000/user/${spaceName}/submit-transcription`,
+        { text: transcribedText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert('Transcription submitted successfully!');
+      setTranscribedText('');
+      setSelectedFiles([]);
+      fetchFiles();
+    } catch (error) {
+      console.error("Error submitting transcription:", error);
     }
   };
 
@@ -171,14 +237,22 @@ const SpacePage = () => {
             <p>no files found. try uploading a file.</p>
           ) : (
             files.map(file => (
-              <div key={file.id} className="file-item">
+              <div 
+                key={file.id} 
+                className={`file-item ${selectedFiles.includes(file.id) ? 'selected' : ''} ${file.name === transcribedFileName ? 'transcribed-file' : ''}`}
+                onClick={() => handleFileSelect(file.id)}
+              >
                 <div className="file-name">
                   <File size={20}/>
                   <span className="file-name-text">{file.name}</span>
+                  {selectedFiles.includes(file.id) && <Check size={16} className="file-selected-icon" />}
                   <div 
                     className="file-options"
                     ref={el => fileOptionsRef.current[file.id] = el}
-                    onClick={() => setFileMenuOpen(fileMenuOpen === file.id ? null : file.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFileMenuOpen(fileMenuOpen === file.id ? null : file.id);
+                    }}
                   >
                     <MoreVertical size={16} />
                   </div>
@@ -198,7 +272,7 @@ const SpacePage = () => {
         <div className="upload-section">
           <label htmlFor="file-upload" className="upload-button">
             <Upload size={16} />
-            upload file
+            upload file ({files.length}/{MAX_FILES})
           </label>
           <input
             id="file-upload"
@@ -207,6 +281,24 @@ const SpacePage = () => {
             style={{ display: 'none' }}
           />
         </div>
+        {selectedFiles.length > 0 && (
+          <button className="transcribe-button" onClick={handleTranscribe}>
+            {loading ? 'Transcribing...' : 'Transcribe Selected Files'}
+          </button>
+        )}
+        {loading && <p>Loading transcription results...</p>}
+        {transcribedText && (
+          <div className="transcription-section">
+            <textarea
+              value={transcribedText}
+              onChange={(e) => setTranscribedText(e.target.value)}
+              className="transcription-text"
+            />
+            <button className="submit-button" onClick={handleSubmitToCloud}>
+              Submit to Cloud
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
