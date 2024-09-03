@@ -40,7 +40,6 @@
     margin-bottom: 30px;
     color: #333;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
   
   .file-list {

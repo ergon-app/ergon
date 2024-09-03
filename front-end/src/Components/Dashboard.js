@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MoreVertical, X, Home, Settings, LogOut, FolderPlus } from 'lucide-react';
+import { MoreVertical, X, Home, Settings, LogOut, FolderPlus, Folder } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import fetchUserInfo from './api';
 import './Dashboard.css';
@@ -160,11 +160,6 @@ const Dashboard = () => {
     navigate('/login');
   };
 
-  const truncateFileName = (name, maxLength = 15) => {
-    if (name.length <= maxLength) return name;
-    return `${name.substring(0, maxLength)}...`;
-  };
-
   const FileMenu = ({ fileId, onClose }) => {
     const optionsRect = fileOptionsRef.current[fileId]?.getBoundingClientRect();
     
@@ -226,7 +221,10 @@ const Dashboard = () => {
             {files.map(file => (
               <div key={file.id} className={`file-item ${file.id === expandedFileId ? 'expanded' : ''}`} onClick={() => handleFileClick(file.id)}>
                 <div className="file-name">
-                  <span className="file-name-text">{file.name}</span>
+                  <Folder size={20}/>
+                  <span className="file-name-text">
+                    {file.name}
+                  </span>
                   <div 
                     className="file-options"
                     ref={el => fileOptionsRef.current[file.id] = el}

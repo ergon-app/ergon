@@ -4,7 +4,7 @@ const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 require('dotenv').config();
 
 const app = express();
@@ -239,10 +239,16 @@ app.get("/user/:spaceName/files", authenticateToken, async (req, res) => {
 });
 
 
-app.delete("/user/:directory/files", authenticateToken, async (req, res) => { 
-    const deleteObjects = req.body.files.map(obj => ({ Key: obj.key }));
+app.delete("/user/:spaceName/file", authenticateToken, async (req, res) => { 
+    const username = req.user.username;  // Assuming you have the username from the token
+    const spaceName = req.params.spaceName;  // Assuming spaceName is passed from frontend
+    const filesToDelete = req.body.files;
 
     try {
+        const deleteObjects = filesToDelete.map(file => ({
+            Key: `users/${username}/${spaceName}/${file.name}`  // Constructing the S3 key
+        }));
+
         const params = {
             Bucket: 'ergon-bucket',
             Delete: {
@@ -257,6 +263,7 @@ app.delete("/user/:directory/files", authenticateToken, async (req, res) => {
         res.status(500).send('Error deleting files from S3');
     }
 });
+
 
 
 app.post("/user/directory/rename", authenticateToken, async (req, res) => {
@@ -335,34 +342,16 @@ app.post("/user/:spaceName/file/upload", authenticateToken, upload.single('file'
     }
 });
 
-app.delete("/user/:directory/file", authenticateToken, async (req, res) => {
+
+app.post("/user/:spaceName/file/rename", authenticateToken, async (req, res) => {
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
-    const directoryName = req.params.directory;
-    const fileName = req.body.fileName;
-
-    try {
-        const params = {
-            Bucket: 'ergon-bucket',
-            Key: `users/${username}/${directoryName}/${fileName}`
-        };
-
-        const command = new DeleteObjectCommand(params);
-        const data = await s3Client.send(command);
-        res.status(200).send('File deleted successfully');
-    } catch (err) {
-        console.error("Error", err);
-        res.status(500).send('Error deleting file from S3');
-    }
-});
-
-
-app.post("/user/:directory/file/rename", authenticateToken, async (req, res) => {
-    const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
-    const username = userResult.rows[0].username;
-    const directoryName = req.params.directory;
+    const directoryName = req.params.spaceName;
     const oldFileName = req.body.oldFileName;
-    const newFileName = sanitizeFileName(req.body.newFileName);
+
+    const fileExtension = oldFileName.substring(oldFileName.lastIndexOf('.'));
+    
+    const newFileName = sanitizeFileName(req.body.newFileName) + fileExtension;
 
     try {
         const oldKey = `users/${username}/${directoryName}/${oldFileName}`;
@@ -385,9 +374,6 @@ app.post("/user/:directory/file/rename", authenticateToken, async (req, res) => 
         res.status(500).send('Error renaming file in S3');
     }
 });
-
-
-
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];

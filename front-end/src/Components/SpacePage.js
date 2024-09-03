@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { MoreVertical, X, Upload, Home, Settings, LogOut } from 'lucide-react';
+import { MoreVertical, X, Upload, Home, Settings, LogOut, File } from 'lucide-react';
 import './SpacePage.css';
 
 const SpacePage = () => {
@@ -45,42 +45,54 @@ const SpacePage = () => {
 
   const handleFileRename = async (fileId, currentName) => {
     try {
-      const newName = prompt("Enter the new name for the file:", currentName);
-      if (!newName || newName === currentName) return;
+        const newName = prompt("Enter the new name for the file:", currentName);
+        if (!newName || newName === currentName) return;
 
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `http://localhost:3000/user/directory/${spaceName}/rename`,
-        { oldName: currentName, newName },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        const token = localStorage.getItem('token');
 
-      setFiles(prevFiles => prevFiles.map(file => 
-        file.id === fileId ? { ...file, name: newName } : file
-      ));
-      setFileMenuOpen(null);
+        await axios.post(
+            `http://localhost:3000/user/${spaceName}/file/rename`,
+            { 
+                oldFileName: currentName, 
+                newFileName: newName 
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const fileExtension = currentName.substring(currentName.lastIndexOf('.'));
+        const updatedName = newName + fileExtension;
+
+        setFiles(prevFiles => prevFiles.map(file => 
+            file.id === fileId ? { ...file, name: updatedName } : file
+        ));
+        setFileMenuOpen(null);
     } catch (error) {
-      console.error("Error renaming file:", error);
+        console.error("Error renaming file:", error);
     }
-  };
+};
+
 
   const handleFileDelete = async (fileId, fileName) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `http://localhost:3000/user/directory/${spaceName}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          data: { name: fileName }
-        }
-      );
+        const token = localStorage.getItem('token');
+        
+        await axios.delete(
+            `http://localhost:3000/user/${spaceName}/file`, 
+            {
+                headers: { Authorization: `Bearer ${token}` },
+                data: { 
+                    files: [{ name: fileName }] 
+                }
+            }
+        );
 
-      setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
-      setFileMenuOpen(null);
+        setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+        setFileMenuOpen(null);
     } catch (error) {
-      console.error("Error deleting file:", error);
+        console.error("Error deleting file:", error);
     }
-  };
+};
+
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -161,6 +173,7 @@ const SpacePage = () => {
             files.map(file => (
               <div key={file.id} className="file-item">
                 <div className="file-name">
+                  <File size={20}/>
                   <span className="file-name-text">{file.name}</span>
                   <div 
                     className="file-options"

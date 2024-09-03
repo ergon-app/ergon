@@ -91,12 +91,19 @@
 }
 
 .file-name {
+  gap: 10px;
   font-size: 1rem;
   color: #333;
   display: inline-flex; /* Make sure this is set */
   align-items: center;
   justify-content: space-between; /* Ensures space between items */
-  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-name-text {
+  flex-grow: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
