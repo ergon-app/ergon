@@ -14,7 +14,7 @@ const SpacePage = () => {
   const [fileMenuOpen, setFileMenuOpen] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [transcribedText, setTranscribedText] = useState('');
-  const [transcribedFileName, setTranscribedFileName] = useState(null);
+  const [transcribedFiles, setTranscribedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const fileOptionsRef = useRef({});
 
@@ -35,9 +35,21 @@ const SpacePage = () => {
         id: id++, 
         name: file.key.split('/').filter(Boolean).pop(),
       }));
-
       setFiles(cleanedFiles);
-      setTranscribedFileName(`${spaceName}-transcription.txt`);
+
+      const transcribedFilesResponse = await axios.get(
+        `http://localhost:3000/user/${spaceName}/transcribedFiles`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (transcribedFilesResponse.data.length === 0) {
+        console.log("No transcribed files returned from the server");
+      }
+
+      let transcribedFiles = transcribedFilesResponse.data;
+      const cleanedTranscribedFiles = transcribedFiles.map(file => (file.key.split('/').filter(Boolean).pop()));
+
+      console.log(cleanedTranscribedFiles)
+      setTranscribedFiles(cleanedTranscribedFiles);
     } catch (error) {
       console.error("Error fetching files:", error);
     }
@@ -48,7 +60,7 @@ const SpacePage = () => {
   }, [fetchFiles]);
 
   const handleFileRename = async (fileId, currentName) => {
-    if(currentName = transcribedFileName) {
+    if(transcribedFiles.includes(currentName)) {
         alert("Cannot rename transcription files!");
         return
     }
@@ -138,7 +150,11 @@ const SpacePage = () => {
     }
   };
 
-  const handleFileSelect = (fileId) => {
+  const handleFileSelect = (fileId, fileName) => {
+    if(transcribedFiles.includes(fileName)) {
+      navigate(`/space/${encodeURIComponent(spaceName)}/${encodeURIComponent(fileName)}`);
+      return
+  }
     setSelectedFiles(prev => 
       prev.includes(fileId) 
         ? prev.filter(id => id !== fileId) 
@@ -239,8 +255,8 @@ const SpacePage = () => {
             files.map(file => (
               <div 
                 key={file.id} 
-                className={`file-item ${selectedFiles.includes(file.id) ? 'selected' : ''} ${file.name === transcribedFileName ? 'transcribed-file' : ''}`}
-                onClick={() => handleFileSelect(file.id)}
+                className={`file-item ${selectedFiles.includes(file.id) ? 'selected' : ''} ${transcribedFiles.includes(file.name) ? 'transcribed-file' : ''}`}
+                onClick={() => handleFileSelect(file.id, file.name)}
               >
                 <div className="file-name">
                   <File size={20}/>

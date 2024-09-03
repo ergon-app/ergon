@@ -5,6 +5,7 @@ import LoginPage from './Components/LoginPage.js'
 import Signup from './Components/SignupPage.js'
 import Dashboard from './Components/Dashboard.js';
 import SpacePage from './Components/SpacePage.js';
+import TranscribePage from './Components/TrascribePage.js';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/space/:spaceName" element={<SpacePage />} />
+          <Route path="/space/:spaceName/:transcribedName" element={<TranscribePage />} />
       </Routes>
     </BrowserRouter>
   );

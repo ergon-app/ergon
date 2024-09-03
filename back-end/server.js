@@ -249,6 +249,42 @@ app.get("/user/:spaceName/files", authenticateToken, async (req, res) => {
     }
 });
 
+app.get("/user/:spaceName/transcribedFiles", authenticateToken, async (req, res) => {
+    console.log("accessed")
+    const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+    const username = userResult.rows[0].username;
+    const directoryName = req.params.spaceName;
+
+    const params = {
+        Bucket: 'ergon-bucket',
+        Prefix: `users/${username}/${directoryName}/transcribe/`
+    };
+
+    try {
+        const command = new ListObjectsV2Command(params);
+        const data = await s3Client.send(command);
+
+        if (!data.Contents) {
+            console.log('No transcribed files found for user:', username);
+            return res.json([]);
+        }
+
+        const cleanedData = data.Contents.filter(file => file.Key !== 'users/' + username + '/' + directoryName + '/')
+        console.log(cleanedData);
+
+        const files = cleanedData.map(file => ({
+            key: file.Key,
+            size: file.Size,
+            lastModified: file.LastModified,
+            url: `https://${params.Bucket}.s3.amazonaws.com/${file.Key}`
+        }));
+        res.status(200).json(files);
+    } catch (err) {
+        console.error("Error", err);
+        res.status(500).send('Error fetching files from S3');
+    }
+});
+
 
 app.delete("/user/:spaceName/file", authenticateToken, async (req, res) => { 
     const username = req.user.username;  // Assuming you have the username from the token
@@ -448,7 +484,7 @@ app.post('/user/:spaceName/submit-transcription', authenticateToken, async (req,
         const { text } = req.body;
 
         const fileName = `${spaceName}-transcription.txt`;
-        const s3Key = `users/${username}/${spaceName}/${fileName}`;
+        const s3Key = `users/${username}/${spaceName}/transcribe/${fileName}`;
 
         const putObjectParams = {
             Bucket: 'ergon-bucket',
@@ -463,6 +499,42 @@ app.post('/user/:spaceName/submit-transcription', authenticateToken, async (req,
     } catch (error) {
         console.error('Error submitting transcription:', error);
         res.status(500).json({ error: 'An error occurred during transcription submission' });
+    }
+});
+
+
+app.get('/user/:spaceName/transcribe/:transcribedName', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/transcribe/${transcribedName}`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let data = '';
+        stream.on('data', chunk => {
+            data += chunk;
+        });
+
+        stream.on('end', () => {
+            res.send(data);
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching transcribed text', error);
+        res.status(500).send('Internal Server Error');
     }
 });
 
