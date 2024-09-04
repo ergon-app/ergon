@@ -1,3 +1,4 @@
+const axios = require("axios")
 const express = require("express");
 const multer = require('multer');
 const cors = require('cors');
@@ -525,6 +526,183 @@ app.get('/user/:spaceName/transcribe/:transcribedName', authenticateToken, async
 
         stream.on('end', () => {
             res.send(data);
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching transcribed text', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.get('/user/:spaceName/transcribe/:transcribedName/study-guide', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/transcribe/${transcribedName}`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let transcription = '';
+        stream.on('data', chunk => {
+            transcription += chunk;
+        });
+
+        stream.on('end', async () => {
+            try {
+                const gptResponse = await axios.post(
+                    'https://api.openai.com/v1/chat/completions',
+                    {
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant.' },
+                            { role: 'user', content: `Write study guide with 7 mcq and 2 short answers (use pdf formatting): ${transcription}` }
+                        ],
+                        max_tokens: 1000,
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${process.env.OPENAI_KEY}`
+                        }
+                    }
+                );
+
+                const summary = gptResponse.data.choices[0].message.content;
+                res.send({ summary });
+            } catch (error) {
+                console.error('Error generating summary with OpenAI:', error.response ? error.response.data : error.message);
+                res.status(500).send('Error generating summary');
+            }
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching transcribed text', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.get('/user/:spaceName/transcribe/:transcribedName/flash-cards', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/transcribe/${transcribedName}`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let transcription = '';
+        stream.on('data', chunk => {
+            transcription += chunk;
+        });
+
+        stream.on('end', async () => {
+            try {
+                const gptResponse = await axios.post(
+                    'https://api.openai.com/v1/chat/completions',
+                    {
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant.' },
+                            { role: 'user', content: `Write 5 quizlet-like flash cards, first part of doc is front card content, second part of doc is answers to cards (use pdf formatting): ${transcription}` }
+                        ],
+                        max_tokens: 1000,
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${process.env.OPENAI_KEY}`
+                        }
+                    }
+                );
+
+                const summary = gptResponse.data.choices[0].message.content;
+                res.send({ summary });
+            } catch (error) {
+                console.error('Error generating summary with OpenAI:', error.response ? error.response.data : error.message);
+                res.status(500).send('Error generating summary');
+            }
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching transcribed text', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.get('/user/:spaceName/transcribe/:transcribedName/summary', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/transcribe/${transcribedName}`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let transcription = '';
+        stream.on('data', chunk => {
+            transcription += chunk;
+        });
+
+        stream.on('end', async () => {
+            try {
+                const gptResponse = await axios.post(
+                    'https://api.openai.com/v1/chat/completions',
+                    {
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: 'You are a helpful assistant.' },
+                            { role: 'user', content: `Summarize in paragraph form: ${transcription}` }
+                        ],
+                        max_tokens: 150,
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${process.env.OPENAI_KEY}`
+                        }
+                    }
+                );
+
+                const summary = gptResponse.data.choices[0].message.content;
+                res.send({ summary });
+            } catch (error) {
+                console.error('Error generating summary with OpenAI:', error.response ? error.response.data : error.message);
+                res.status(500).send('Error generating summary');
+            }
         });
 
         stream.on('error', (err) => {
