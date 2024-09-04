@@ -564,7 +564,7 @@ app.get('/user/:spaceName/transcribe/:transcribedName/study-guide', authenticate
                 const gptResponse = await axios.post(
                     'https://api.openai.com/v1/chat/completions',
                     {
-                        model: 'gpt-3.5-turbo',
+                        model: 'gpt-4o-mini',
                         messages: [
                             { role: 'system', content: 'You are a helpful assistant.' },
                             { role: 'user', content: `Write study guide with 7 mcq and 2 short answers (use pdf formatting): ${transcription}` }
@@ -623,7 +623,7 @@ app.get('/user/:spaceName/transcribe/:transcribedName/flash-cards', authenticate
                 const gptResponse = await axios.post(
                     'https://api.openai.com/v1/chat/completions',
                     {
-                        model: 'gpt-3.5-turbo',
+                        model: 'gpt-4o-mini',
                         messages: [
                             { role: 'system', content: 'You are a helpful assistant.' },
                             { role: 'user', content: `Write 5 quizlet-like flash cards, first part of doc is front card content, second part of doc is answers to cards (use pdf formatting): ${transcription}` }
@@ -682,7 +682,7 @@ app.get('/user/:spaceName/transcribe/:transcribedName/summary', authenticateToke
                 const gptResponse = await axios.post(
                     'https://api.openai.com/v1/chat/completions',
                     {
-                        model: 'gpt-3.5-turbo',
+                        model: 'gpt-4o-mini',
                         messages: [
                             { role: 'system', content: 'You are a helpful assistant.' },
                             { role: 'user', content: `Summarize in paragraph form: ${transcription}` }
