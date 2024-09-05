@@ -598,6 +598,32 @@ app.get('/user/:spaceName/transcribe/:transcribedName/study-guide', authenticate
     }
 });
 
+app.post('/user/:spaceName/study-guide/:transcribedName/upload', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+        const { studyGuide } = req.body;
+
+        const fileName = `${transcribedName}-study-guide.txt`;
+        const s3Key = `users/${username}/${spaceName}/llm/${fileName}`;
+
+        const putObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+            Body: studyGuide,
+            ContentType: 'text/plain',
+        };
+
+        await s3Client.send(new PutObjectCommand(putObjectParams));
+
+        res.status(200).json({ message: 'Study guide uploaded successfully', fileName: fileName });
+    } catch (error) {
+        console.error('Error uploading study guide:', error);
+        res.status(500).json({ error: 'An error occurred during study guide upload' });
+    }
+});
+
 app.get('/user/:spaceName/transcribe/:transcribedName/flash-cards', authenticateToken, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
@@ -657,6 +683,33 @@ app.get('/user/:spaceName/transcribe/:transcribedName/flash-cards', authenticate
     }
 });
 
+app.post('/user/:spaceName/flash-cards/:transcribedName/upload', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+        const { flashcards } = req.body;
+
+        const fileName = `${transcribedName}-flash-cards.txt`;
+        const s3Key = `users/${username}/${spaceName}/llm/${fileName}`;
+
+        const putObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+            Body: flashcards,
+            ContentType: 'text/plain',
+        };
+
+        await s3Client.send(new PutObjectCommand(putObjectParams));
+
+        res.status(200).json({ message: 'Flashcards uploaded successfully', fileName: fileName });
+    } catch (error) {
+        console.error('Error uploading flashcards:', error);
+        res.status(500).json({ error: 'An error occurred during flashcards upload' });
+    }
+});
+
+
 app.get('/user/:spaceName/transcribe/:transcribedName/summary', authenticateToken, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
@@ -713,6 +766,32 @@ app.get('/user/:spaceName/transcribe/:transcribedName/summary', authenticateToke
     } catch (error) {
         console.error('Error fetching transcribed text', error);
         res.status(500).send('Internal Server Error');
+    }
+});
+
+app.post('/user/:spaceName/summary/:transcribedName/upload', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+        const { summary } = req.body;
+
+        const fileName = `${transcribedName}-summary.txt`;
+        const s3Key = `users/${username}/${spaceName}/llm/${fileName}`;
+
+        const putObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+            Body: summary,
+            ContentType: 'text/plain',
+        };
+
+        await s3Client.send(new PutObjectCommand(putObjectParams));
+
+        res.status(200).json({ message: 'Summary uploaded successfully', fileName: fileName });
+    } catch (error) {
+        console.error('Error uploading summary:', error);
+        res.status(500).json({ error: 'An error occurred during summary upload' });
     }
 });
 

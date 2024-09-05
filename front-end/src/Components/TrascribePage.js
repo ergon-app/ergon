@@ -46,12 +46,19 @@ const TranscribePage = () => {
     try {
       setStudyGuideLoading(true);
       const token = localStorage.getItem('token');
+
       const response = await axios.get(
         `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/study-guide`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const studyGuideText = response.data.summary;
-  
+ 
+      await axios.post(
+        `http://localhost:3000/user/${spaceName}/study-guide/${transcribedName}/upload`,
+        { studyGuide: studyGuideText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       const doc = new jsPDF();
       doc.setFontSize(10);
   
@@ -60,61 +67,88 @@ const TranscribePage = () => {
       const textWidth = pageWidth - margins * 2;
   
       const wrappedText = doc.splitTextToSize(studyGuideText, textWidth);
-  
+
       doc.text(wrappedText, margins, 10);
       doc.save(`${transcribedName}_Study_Guide.pdf`);
+  
+      console.log('Study guide uploaded and PDF generated successfully.');
     } catch (error) {
-      console.error("Error fetching study guide", error);
+      console.error("Error fetching or uploading study guide", error);
     } finally {
       setStudyGuideLoading(false);
     }
   };
+  
 
   const handleCreateFlashCards = async () => {
     try {
       setFlashCardsLoading(true);
       const token = localStorage.getItem('token');
+  
       const response = await axios.get(
         `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/flash-cards`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const flashCardsText = response.data.summary;
-      
+
+      await axios.post(
+        `http://localhost:3000/user/${spaceName}/flash-cards/${transcribedName}/upload`,
+        { flashcards: flashCardsText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       const doc = new jsPDF();
       doc.setFontSize(10);
-
+  
       const pageWidth = doc.internal.pageSize.getWidth();
       const margins = 10;
       const textWidth = pageWidth - margins * 2;
-
+  
       const wrappedText = doc.splitTextToSize(flashCardsText, textWidth);
-
+  
       doc.text(wrappedText, margins, 10);
       doc.save(`${transcribedName}_Flash_Cards.pdf`);
+  
+      console.log('Flashcards uploaded and PDF generated successfully.');
     } catch (error) {
-      console.error("Error fetching flash cards", error);
+      console.error("Error fetching or uploading flash cards", error);
     } finally {
       setFlashCardsLoading(false);
     }
   };
+  
 
   const handleCreateSummary = async () => {
     try {
       setSummaryLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(
+  
+      const summaryResponse = await axios.get(
         `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/summary`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setSummary(response.data.summary);
+  
+      const summary = summaryResponse.data.summary;
+      setSummary(summary);
       setSummaryGenerated(true);
+
+      const uploadResponse = await axios.post(
+        `http://localhost:3000/user/${spaceName}/summary/${transcribedName}/upload`,
+        { summary },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (uploadResponse.status === 200) {
+        console.log("Summary uploaded successfully:", uploadResponse.data.fileName);
+      }
     } catch (error) {
-      console.error("Error fetching summary", error);
-      setSummary("Failed to generate summary.");
+      console.error("Error generating or uploading summary", error);
+      setSummary("Failed to generate or upload summary.");
     } finally {
       setSummaryLoading(false);
     }
   };
+  
   
   return (
     <div className="transcribe-page">
