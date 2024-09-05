@@ -152,7 +152,6 @@ app.get("/user/directory", authenticateToken, async (req, res) => {
             lastModified: file.LastModified,
             url: `https://${params.Bucket}.s3.amazonaws.com/${file.Key}`
         }));
-        console.log(files);
         res.status(200).json(files);
     } catch (err) {
         console.error("Error", err);
@@ -234,8 +233,10 @@ app.get("/user/:spaceName/files", authenticateToken, async (req, res) => {
             console.log('No files found for user:', username);
             return res.json([]);
         }
-
-        const cleanedData = data.Contents.filter(file => file.Key !== 'users/' + username + '/' + directoryName + '/')
+        const cleanedData = data.Contents.filter(file => {
+            return (file.Key !== 'users/' + username + '/' + directoryName + '/' && 
+                     !file.Key.includes('users/' + username + '/' + directoryName + '/llm/'));
+        });
 
         const files = cleanedData.map(file => ({
             key: file.Key,
@@ -251,7 +252,6 @@ app.get("/user/:spaceName/files", authenticateToken, async (req, res) => {
 });
 
 app.get("/user/:spaceName/transcribedFiles", authenticateToken, async (req, res) => {
-    console.log("accessed")
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
     const directoryName = req.params.spaceName;
@@ -271,7 +271,6 @@ app.get("/user/:spaceName/transcribedFiles", authenticateToken, async (req, res)
         }
 
         const cleanedData = data.Contents.filter(file => file.Key !== 'users/' + username + '/' + directoryName + '/')
-        console.log(cleanedData);
 
         const files = cleanedData.map(file => ({
             key: file.Key,
@@ -315,7 +314,6 @@ app.delete("/user/:spaceName/file", authenticateToken, async (req, res) => {
 
 
 app.post("/user/directory/rename", authenticateToken, async (req, res) => {
-    console.log('Rename route accessed:', req.body); // Log request body
     const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
     const username = userResult.rows[0].username;
     const oldDirectoryName = req.body.oldName;
@@ -484,7 +482,16 @@ app.post('/user/:spaceName/submit-transcription', authenticateToken, async (req,
         const { spaceName } = req.params;
         const { text } = req.body;
 
-        const fileName = `${spaceName}-transcription.txt`;
+        // find total number of files in the transcribe directory and assign the filename accordingly
+        const listParams = {
+            Bucket: 'ergon-bucket',
+            Prefix: `users/${username}/${spaceName}/transcribe/`
+        };
+        const listCommand = new ListObjectsV2Command(listParams);
+        const listedObjects = await s3Client.send(listCommand);
+        const files = listedObjects.Contents.filter(file => file.Key !== 'users/' + username + '/' + spaceName + '/transcribe/');
+        
+        const fileName = `${spaceName}-transcription-${files.length + 1}.txt`;
         const s3Key = `users/${username}/${spaceName}/transcribe/${fileName}`;
 
         const putObjectParams = {
@@ -624,6 +631,42 @@ app.post('/user/:spaceName/study-guide/:transcribedName/upload', authenticateTok
     }
 });
 
+//http://localhost:3000/user/${spaceName}/study-guide/${transcribedName}
+app.get('/user/:spaceName/study-guide/:transcribedName', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/llm/${transcribedName}-study-guide.txt`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let data = '';
+        stream.on('data', chunk => {
+            data += chunk;
+        });
+
+        stream.on('end', () => {
+            res.send(data);
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching study guide', error);
+        res.status(200).send('Study guide does not exist');
+    }
+});
+
 app.get('/user/:spaceName/transcribe/:transcribedName/flash-cards', authenticateToken, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
@@ -680,6 +723,42 @@ app.get('/user/:spaceName/transcribe/:transcribedName/flash-cards', authenticate
     } catch (error) {
         console.error('Error fetching transcribed text', error);
         res.status(500).send('Internal Server Error');
+    }
+});
+
+//http://localhost:3000/user/${spaceName}/flash-cards/${transcribedName}
+app.get('/user/:spaceName/flash-cards/:transcribedName', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/llm/${transcribedName}-flash-cards.txt`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let data = '';
+        stream.on('data', chunk => {
+            data += chunk;
+        });
+
+        stream.on('end', () => {
+            res.send(data);
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching flashcards', error);
+        res.status(200).send('Flashcards do not exist');
     }
 });
 
@@ -766,6 +845,42 @@ app.get('/user/:spaceName/transcribe/:transcribedName/summary', authenticateToke
     } catch (error) {
         console.error('Error fetching transcribed text', error);
         res.status(500).send('Internal Server Error');
+    }
+});
+
+//http://localhost:3000/user/${spaceName}/summary/${transcribedName}
+app.get('/user/:spaceName/summary/:transcribedName', authenticateToken, async (req, res) => {
+    try {
+        const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]);
+        const username = userResult.rows[0].username;
+        const { spaceName, transcribedName } = req.params;
+
+        const s3Key = `users/${username}/${spaceName}/llm/${transcribedName}-summary.txt`;
+        const getObjectParams = {
+            Bucket: 'ergon-bucket',
+            Key: s3Key,
+        };
+
+        const s3Response = await s3Client.send(new GetObjectCommand(getObjectParams));
+        const stream = s3Response.Body;
+
+        let data = '';
+        stream.on('data', chunk => {
+            data += chunk;
+        });
+
+        stream.on('end', () => {
+            res.send(data);
+        });
+
+        stream.on('error', (err) => {
+            console.error('Error processing stream', err);
+            res.status(500).send('Error reading file from S3');
+        });
+
+    } catch (error) {
+        console.error('Error fetching summary', error);
+        res.status(200).send('Summary does not exist');
     }
 });
 

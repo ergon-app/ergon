@@ -46,18 +46,28 @@ const TranscribePage = () => {
     try {
       setStudyGuideLoading(true);
       const token = localStorage.getItem('token');
-
-      const response = await axios.get(
-        `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/study-guide`,
+      // check if study guide already exists
+      const check = await axios.get(
+        `http://localhost:3000/user/${spaceName}/study-guide/${transcribedName}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const studyGuideText = response.data.summary;
- 
-      await axios.post(
-        `http://localhost:3000/user/${spaceName}/study-guide/${transcribedName}/upload`,
-        { studyGuide: studyGuideText },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      let studyGuideText = '';
+      if (check.data === 'Study guide does not exist') {
+        console.log('Study guide does not exist. Creating study guide...');
+        const response = await axios.get(
+          `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/study-guide`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        studyGuideText = response.data.summary;
+  
+        await axios.post(
+          `http://localhost:3000/user/${spaceName}/study-guide/${transcribedName}/upload`,
+          { studyGuide: studyGuideText },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        studyGuideText = check.data;
+      }
 
       const doc = new jsPDF();
       doc.setFontSize(10);
@@ -84,18 +94,28 @@ const TranscribePage = () => {
     try {
       setFlashCardsLoading(true);
       const token = localStorage.getItem('token');
-  
-      const response = await axios.get(
-        `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/flash-cards`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const flashCardsText = response.data.summary;
 
-      await axios.post(
-        `http://localhost:3000/user/${spaceName}/flash-cards/${transcribedName}/upload`,
-        { flashcards: flashCardsText },
+      const check = await axios.get(
+        `http://localhost:3000/user/${spaceName}/flash-cards/${transcribedName}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      let flashCardsText = '';
+      if (check.data === 'Flashcards do not exist') {
+        const response = await axios.get(
+          `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/flash-cards`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        flashCardsText = response.data.summary;
+
+        await axios.post(
+          `http://localhost:3000/user/${spaceName}/flash-cards/${transcribedName}/upload`,
+          { flashcards: flashCardsText },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        flashCardsText = check.data;
+        console.log('Flash cards already exist. Fetching flash cards...');
+      }
 
       const doc = new jsPDF();
       doc.setFontSize(10);
@@ -122,25 +142,37 @@ const TranscribePage = () => {
     try {
       setSummaryLoading(true);
       const token = localStorage.getItem('token');
-  
-      const summaryResponse = await axios.get(
-        `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/summary`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-  
-      const summary = summaryResponse.data.summary;
-      setSummary(summary);
-      setSummaryGenerated(true);
 
-      const uploadResponse = await axios.post(
-        `http://localhost:3000/user/${spaceName}/summary/${transcribedName}/upload`,
-        { summary },
+      const check = await axios.get(
+        `http://localhost:3000/user/${spaceName}/summary/${transcribedName}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (uploadResponse.status === 200) {
-        console.log("Summary uploaded successfully:", uploadResponse.data.fileName);
+      if (check.data === 'Summary does not exist') {
+        const summaryResponse = await axios.get(
+          `http://localhost:3000/user/${spaceName}/transcribe/${transcribedName}/summary`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+    
+        const summary = summaryResponse.data.summary;
+        setSummary(summary);
+        setSummaryGenerated(true);
+
+        const uploadResponse = await axios.post(
+          `http://localhost:3000/user/${spaceName}/summary/${transcribedName}/upload`,
+          { summary },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (uploadResponse.status === 200) {
+          console.log("Summary uploaded successfully:", uploadResponse.data.fileName);
+        }
+      } else {
+        setSummary(check.data);
+        setSummaryGenerated(true);
+        console.log('Summary already exists. Fetching summary...');
       }
+        
     } catch (error) {
       console.error("Error generating or uploading summary", error);
       setSummary("Failed to generate or upload summary.");

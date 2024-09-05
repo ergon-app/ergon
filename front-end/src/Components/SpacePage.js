@@ -36,6 +36,7 @@ const SpacePage = () => {
         name: file.key.split('/').filter(Boolean).pop(),
       }));
       setFiles(cleanedFiles);
+      console.log(cleanedFiles);
 
       const transcribedFilesResponse = await axios.get(
         `http://localhost:3000/user/${spaceName}/transcribedFiles`,
