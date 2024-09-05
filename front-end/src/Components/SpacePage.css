@@ -1,222 +1,225 @@
-/* SpacePage.css */
 .space-page {
-    display: flex;
-    height: 100vh;
-    background-color: #f4f4f4;
-  }
-  
-  .sidebar {
-    width: 250px;
-    background-color: #434343;
-    color: #fff;
-    padding: 20px;
-  }
-  
-  .sidebar-item {
-    padding: 10px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .sidebar-item:hover {
-    background-color: #333;
-  }
-  
-  .main-content {
-    flex-grow: 1;
-    padding: 40px;
-    overflow-y: auto;
-  }
-  
-  .space-title {
-    font-size: 2.5rem;
-    margin-bottom: 30px;
-    color: #333;
-  }
-  
-  .file-list {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-  }
-  
-  .file-item {
-    background-color: #fff;
-    padding: 15px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.3s ease, background-color 0.3s ease;
-    cursor: pointer;
-  }
-  
-  .file-item:hover {
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  }
-  
-  .file-item.selected {
-    background-color: #e6e6e6;
-  }
-  
-  .file-name {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 1rem;
-    color: #333;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .file-name-text {
-    flex-grow: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-left: 10px;
-  }
-  
-  .file-selected-icon {
-    margin-left: 10px;
-    color: #434343;
-  }
-  
-  .file-options {
-    flex-shrink: 0;
-    margin-left: auto;
-    cursor: pointer;
-  }
-  
-  .file-menu {
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    padding: 5px 0;
-    min-width: 120px;
-    font-size: 0.9rem;
-  }
-  
-  .file-menu-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .file-menu-item:hover {
-    background-color: #f0f0f0;
-  }
-  
-  .file-menu-divider {
-    height: 1px;
-    background-color: #e0e0e0;
-    margin: 5px 0;
-  }
-  
-  .file-menu-close {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    cursor: pointer;
-  }
-  
-  .upload-section {
-    margin-bottom: 20px;
-  }
-  
-  .upload-button {
-    padding: 10px 15px;
-    display: inline-flex;
-    gap: 10px;
-    align-items: center;
-    font-size: 1rem;
-    color: #fff;
-    background-color: #434343;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .upload-button:hover {
-    background-color: #333;
-  }
-  
-  .transcribe-button {
-    padding: 10px 15px;
-    font-size: 1rem;
-    color: #fff;
-    background-color: #434343;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    margin-top: 20px;
-  }
-  
-  .transcribe-button:hover {
-    background-color: #333;
-  }
-  
-  .transcription-section {
-    margin-top: 20px;
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  .transcription-text {
-    width: 100%;
-    height: 200px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    resize: vertical;
-    font-size: 1rem;
-    margin-bottom: 10px;
-  }
-  
-  .submit-button {
-    padding: 10px 15px;
-    font-size: 1rem;
-    color: #fff;
-    background-color: #434343;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .submit-button:hover {
-    background-color: #333;
-  }
-
-.file-item.transcribed-file {
-    background-color: #e0f7fa; /* Light cyan background to distinguish transcribed files */
-    border-left: 5px solid #00acc1; /* Accent border to indicate special status */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Slightly stronger shadow for prominence */
+  display: flex;
+  height: 100vh;
 }
 
-.file-item.transcribed-file:hover {
-    background-color: #b2ebf2; /* Lighter cyan on hover */
+.sidebar {
+  width: 200px;
+  background-color: #f0f0f0;
+  padding: 20px;
 }
 
-.file-name.transcribed-file {
-    color: #00796b; /* Darker cyan text for better visibility */
-    font-weight: bold; /* Emphasize the transcribed file name */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: pointer;
 }
 
-.file-selected-icon.transcribed-file {
-    color: #004d40; /* Matching dark cyan for the selected icon */
+.sidebar-item span {
+  margin-left: 10px;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.space-title {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.files-container {
+  display: flex;
+  gap: 20px;
+}
+
+.file-section {
+  flex: 1;
+  position: relative;
+}
+
+.section-title {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.file-list {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.file-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.rename-button, .delete-button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.delete-button {
+  background-color: #ff4d4f;
+}
+
+.rename-button:hover, .delete-button:hover {
+  opacity: 0.8;
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+.file-item.selected {
+  background-color: #e6f7ff;
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.file-name-text {
+  margin-left: 10px;
+  flex: 1;
+}
+
+.file-selected-icon {
+  margin-left: 10px;
+}
+
+.file-options {
+  cursor: pointer;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.file-menu {
+  position: absolute;
+  bottom: 100%; /* Position above the file item */
+  right: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 5px 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 100px; /* Ensure the menu has a minimum width */
+}
+
+.file-menu-item {
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.file-menu-item:hover {
+  background-color: #f0f0f0;
+}
+
+.file-menu-divider {
+  height: 1px;
+  background-color: #ccc;
+  margin: 5px 0;
+}
+
+.file-menu-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  cursor: pointer;
+}
+
+.upload-section {
+  margin-top: 20px;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  background-color: #1890ff;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 14px;
+}
+
+.upload-button:hover {
+  background-color: #40a9ff;
+}
+
+.transcribe-button {
+  display: block;
+  margin-top: 20px;
+  background-color: #1890ff;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 14px;
+}
+
+.transcribe-button:hover {
+  background-color: #40a9ff;
+}
+
+.transcription-section {
+  margin-top: 20px;
+}
+
+.transcription-text {
+  width: 100%;
+  height: 200px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.submit-button {
+  display: block;
+  margin-top: 10px;
+  background-color: #1890ff;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 14px;
+}
+
+.submit-button:hover {
+  background-color: #40a9ff;
+}
+
+.transcribed-file {
+  background-color: transparent;
+  height: 40px;
+  box-sizing: border-box;
 }

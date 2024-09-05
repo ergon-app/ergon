@@ -219,26 +219,26 @@ const Dashboard = () => {
           </button>
           <div className="file-list">
             {files.map(file => (
-              <div key={file.id} className={`file-item ${file.id === expandedFileId ? 'expanded' : ''}`} onClick={() => handleFileClick(file.id)}>
+              <div
+                key={file.id}
+                className={`file-item ${file.id === expandedFileId ? 'expanded' : ''}`}
+                onClick={() => handleFileClick(file.id)}
+              >
                 <div className="file-name">
-                  <Folder size={20}/>
+                  <Folder size={20} />
                   <span className="file-name-text">
                     {file.name}
                   </span>
-                  <div 
-                    className="file-options"
-                    ref={el => fileOptionsRef.current[file.id] = el}
+                  <button
+                    className="delete-button"
                     onClick={(event) => {
-                      event.stopPropagation();
-                      setFileMenuOpen(fileMenuOpen === file.id ? null : file.id);
+                      event.stopPropagation(); // Prevent triggering the file click
+                      handleFileDelete(file.id); // Call delete handler
                     }}
                   >
-                    <MoreVertical size={16} />
-                  </div>
+                    Delete
+                  </button>
                 </div>
-                {fileMenuOpen === file.id && (
-                  <FileMenu fileId={file.id} onClose={() => setFileMenuOpen(null)} />
-                )}
               </div>
             ))}
           </div>

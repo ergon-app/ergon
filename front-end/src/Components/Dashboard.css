@@ -149,3 +149,23 @@
 .file-menu-close {
   cursor: pointer;
 }
+
+.delete-button {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.delete-button:hover {
+  background-color: darkred;
+}
+
+.delete-button:active {
+  background-color: #b30000;
+}

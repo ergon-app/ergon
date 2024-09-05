@@ -11,10 +11,10 @@ const SpacePage = () => {
   const { spaceName } = useParams();
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
+  const [transcribedFiles, setTranscribedFiles] = useState([]);
   const [fileMenuOpen, setFileMenuOpen] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [transcribedText, setTranscribedText] = useState('');
-  const [transcribedFiles, setTranscribedFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const fileOptionsRef = useRef({});
 
@@ -29,28 +29,27 @@ const SpacePage = () => {
         console.log("No files returned from the server");
       }
 
-      let files = response.data;
+      let allFiles = response.data;
       let id = 1;
-      const cleanedFiles = files.map(file => ({
+      const cleanedFiles = allFiles.map(file => ({
         id: id++, 
         name: file.key.split('/').filter(Boolean).pop(),
       }));
-      setFiles(cleanedFiles);
-      console.log(cleanedFiles);
 
       const transcribedFilesResponse = await axios.get(
         `http://localhost:3000/user/${spaceName}/transcribedFiles`,
         { headers: { Authorization: `Bearer ${token}` } }
-      )
+      );
       if (transcribedFilesResponse.data.length === 0) {
         console.log("No transcribed files returned from the server");
       }
 
-      let transcribedFiles = transcribedFilesResponse.data;
-      const cleanedTranscribedFiles = transcribedFiles.map(file => (file.key.split('/').filter(Boolean).pop()));
+      let transcribedFileNames = transcribedFilesResponse.data.map(file => 
+        file.key.split('/').filter(Boolean).pop()
+      );
 
-      console.log(cleanedTranscribedFiles)
-      setTranscribedFiles(cleanedTranscribedFiles);
+      setFiles(cleanedFiles.filter(file => !transcribedFileNames.includes(file.name)));
+      setTranscribedFiles(cleanedFiles.filter(file => transcribedFileNames.includes(file.name)));
     } catch (error) {
       console.error("Error fetching files:", error);
     }
@@ -61,10 +60,6 @@ const SpacePage = () => {
   }, [fetchFiles]);
 
   const handleFileRename = async (fileId, currentName) => {
-    if(transcribedFiles.includes(currentName)) {
-        alert("Cannot rename transcription files!");
-        return
-    }
     try {
       const newName = prompt("Enter the new name for the file:", currentName);
       if (!newName || newName === currentName) return;
@@ -151,11 +146,7 @@ const SpacePage = () => {
     }
   };
 
-  const handleFileSelect = (fileId, fileName) => {
-    if(transcribedFiles.includes(fileName)) {
-      navigate(`/space/${encodeURIComponent(spaceName)}/${encodeURIComponent(fileName)}`);
-      return
-  }
+  const handleFileSelect = (fileId) => {
     setSelectedFiles(prev => 
       prev.includes(fileId) 
         ? prev.filter(id => id !== fileId) 
@@ -181,7 +172,7 @@ const SpacePage = () => {
     } catch (error) {
       console.error("Error transcribing files:", error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -204,22 +195,25 @@ const SpacePage = () => {
   };
 
   const FileMenu = ({ fileId, fileName, onClose }) => {
-    const optionsRect = fileOptionsRef.current[fileId]?.getBoundingClientRect();
-    
     return (
-      <div className="file-menu" style={{
-        position: 'absolute',
-        top: `${optionsRect ? optionsRect.bottom + window.scrollY : 0}px`,
-        left: `${optionsRect ? optionsRect.left + window.scrollX : 0}px`,
-      }}>
-        <div className="file-menu-item" onClick={() => handleFileRename(fileId, fileName)}>
+      <div className="file-menu">
+        <div className="file-menu-item" onClick={(e) => {
+          e.stopPropagation();
+          handleFileRename(fileId, fileName);
+        }}>
           rename
         </div>
         <div className="file-menu-divider"></div>
-        <div className="file-menu-item" onClick={() => handleFileDelete(fileId, fileName)}>
+        <div className="file-menu-item" onClick={(e) => {
+          e.stopPropagation();
+          handleFileDelete(fileId, fileName);
+        }}>
           delete
         </div>
-        <div className="file-menu-close" onClick={onClose}>
+        <div className="file-menu-close" onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}>
           <X size={16} />
         </div>
       </div>
@@ -249,42 +243,61 @@ const SpacePage = () => {
       </div>
       <div className="main-content">
         <h1 className="space-title">{spaceName}</h1>
-        <div className="file-list">
-          {files.length === 0 ? (
-            <p>no files found. try uploading a file.</p>
-          ) : (
-            files.map(file => (
-              <div 
-                key={file.id} 
-                className={`file-item ${selectedFiles.includes(file.id) ? 'selected' : ''} ${transcribedFiles.includes(file.name) ? 'transcribed-file' : ''}`}
-                onClick={() => handleFileSelect(file.id, file.name)}
-              >
-                <div className="file-name">
-                  <File size={20}/>
-                  <span className="file-name-text">{file.name}</span>
-                  {selectedFiles.includes(file.id) && <Check size={16} className="file-selected-icon" />}
+        <div className="files-container">
+          <div className="file-section">
+            <h2 className="section-title">Files</h2>
+            <div className="file-list">
+            {files.length === 0 ? (
+                <p>no files found. try uploading a file.</p>
+              ) : (
+                files.map(file => (
                   <div 
-                    className="file-options"
-                    ref={el => fileOptionsRef.current[file.id] = el}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFileMenuOpen(fileMenuOpen === file.id ? null : file.id);
-                    }}
+                    key={file.id} 
+                    className={`file-item ${selectedFiles.includes(file.id) ? 'selected' : ''}`}
+                    onClick={() => handleFileSelect(file.id)}
                   >
-                    <MoreVertical size={16} />
+                    <div className="file-name">
+                      <File size={20}/>
+                      <span className="file-name-text">{file.name}</span>
+                      {selectedFiles.includes(file.id) && <Check size={16} className="file-selected-icon" />}
+                    </div>
+                    <div className="file-actions">
+                      <button 
+                        className="delete-button" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFileDelete(file.id, file.name);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                </div>
-                {fileMenuOpen === file.id && (
-                  <FileMenu 
-                    key={file.id + "-menu"}
-                    fileId={file.id} 
-                    fileName={file.name}
-                    onClose={() => setFileMenuOpen(null)} 
-                  />
-                )}
-              </div>
-            ))
-          )}
+                ))
+              )}
+            </div>
+          </div>
+          <div className="file-section">
+            <h2 className="section-title">Transcribed Files</h2>
+            <div className="file-list">
+              {transcribedFiles.length === 0 ? (
+                <p>no transcribed files found.</p>
+              ) : (
+                transcribedFiles.map(file => (
+                  <div 
+                    key={file.id} 
+                    className="file-item transcribed-file"
+                    onClick={() => navigate(`/space/${encodeURIComponent(spaceName)}/${encodeURIComponent(file.name)}`)}
+                  >
+                    <div className="file-name">
+                      <File size={20}/>
+                      <span className="file-name-text">{file.name}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
         <div className="upload-section">
           <label htmlFor="file-upload" className="upload-button">
